@@ -1,0 +1,20 @@
+version: "3.9"
+
+services:
+  estate-bot:
+    image: python:3.11-slim
+    container_name: estate-intelligence-bot
+    restart: unless-stopped
+    working_dir: /app
+    volumes:
+      - .:/app
+    command: >
+      sh -c "pip install -r requirements.txt -q && python src/bot.py"
+    env_file:
+      - .env
+    networks:
+      - estate-net
+
+networks:
+  estate-net:
+    external: true

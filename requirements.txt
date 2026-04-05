@@ -1,0 +1,6 @@
+asyncio==3.4.3
+python-telegram-bot==20.7
+asyncpg==0.29.0
+psycopg2-binary==2.9.9
+pydantic==2.5.3
+python-dotenv==1.0.0
