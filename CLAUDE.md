@@ -91,11 +91,14 @@ n8n workflow (triggered by cron or scheduling node):
 # Install dependencies
 pip install -r requirements.txt
 
-# Run bot (dev)
+# Run bot (dev) — requires TELEGRAM_BOT_TOKEN, DATABASE_URL env vars
 python src/bot.py
 
-# Run tests
+# Run all tests
 python -m pytest tests/ -v
+
+# Run single test file
+python -m pytest tests/test_bot.py -v
 
 # Docker (production)
 docker compose up -d

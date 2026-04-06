@@ -15,6 +15,42 @@ services:
     networks:
       - estate-net
 
+  estate-api:
+    image: python:3.11-slim
+    container_name: estate-intelligence-api
+    restart: unless-stopped
+    working_dir: /app
+    volumes:
+      - .:/app
+    command: >
+      sh -c "pip install -r requirements.txt -q && uvicorn src.webhooks:app --host 0.0.0.0 --port 8000"
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    networks:
+      - estate-net
+
+  estate-db:
+    image: postgres:16-alpine
+    container_name: estate-intelligence-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: estate_user
+      POSTGRES_PASSWORD: changed_in_prod
+      POSTGRES_DB: estate_intelligence
+    volumes:
+      - estate-db-data:/var/lib/postgresql/data
+      - ./scripts/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+    ports:
+      - "5432:5432"
+    networks:
+      - estate-net
+
+volumes:
+  estate-db-data:
+
 networks:
   estate-net:
-    external: true
+    name: estate-net
+    external: false

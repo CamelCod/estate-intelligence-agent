@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Estate Intelligence — Admin Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Lora:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    /* ── RESET & BASE ────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+
+    :root {
+      --dark:        #141413;
+      --light:       #faf9f5;
+      --mid-gray:    #b0aea5;
+      --light-gray:  #e8e6dc;
+      --orange:      #d97757;
+      --blue:        #6a9bcc;
+      --green:       #788c5d;
+      --card-bg:     #1c1c1a;
+      --card-border: #2a2a28;
+      --text:        #e8e6dc;
+      --muted:       #8a8880;
+      --radius:      10px;
+      --font-head:   'Poppins', Arial, sans-serif;
+      --font-body:   'Lora', Georgia, serif;
+    }
+
+    body {
+      font-family: var(--font-body);
+      background: var(--dark);
+      color: var(--text);
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { color: var(--orange); }
+
+    /* ── LAYOUT ─────────────────────────────────────────────── */
+    .app-shell {
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      min-height: 100vh;
+    }
+
+    /* ── SIDEBAR ─────────────────────────────────────────────── */
+    .sidebar {
+      background: var(--card-bg);
+      border-right: 1px solid var(--card-border);
+      padding: 24px 16px;
+      position: fixed;
+      width: 220px;
+      height: 100vh;
+      overflow-y: auto;
+    }
+    .sidebar-logo {
+      font-family: var(--font-head);
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--orange);
+      margin-bottom: 28px;
+      padding: 0 8px;
+    }
+    .nav-section { margin-bottom: 24px; }
+    .nav-section-title {
+      font-family: var(--font-head);
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      padding: 0 8px;
+      margin-bottom: 8px;
+    }
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-family: var(--font-head);
+      font-weight: 500;
+      color: var(--mid-gray);
+      cursor: pointer;
+      transition: all .2s;
+      margin-bottom: 2px;
+    }
+    .nav-item:hover { background: rgba(255,255,255,.04); color: var(--text); }
+    .nav-item.active { background: rgba(217,119,87,.12); color: var(--orange); }
+    .nav-icon { font-size: 16px; width: 18px; text-align: center; }
+    .nav-badge {
+      margin-left: auto;
+      background: var(--orange);
+      color: var(--dark);
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 10px;
+    }
+
+    /* ── MAIN CONTENT ────────────────────────────────────────── */
+    .main {
+      margin-left: 220px;
+      padding: 32px 36px;
+    }
+
+    /* ── HEADER BAR ──────────────────────────────────────────── */
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 32px;
+    }
+    .topbar-title {
+      font-family: var(--font-head);
+      font-size: 22px;
+      font-weight: 700;
+    }
+    .topbar-meta { font-size: 13px; color: var(--muted); margin-top: 2px; }
+    .topbar-actions { display: flex; gap: 10px; align-items: center; }
+    .btn {
+      padding: 8px 18px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-family: var(--font-head);
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: all .2s;
+    }
+    .btn-primary { background: var(--orange); color: var(--dark); }
+    .btn-primary:hover { background: #c4684a; }
+    .btn-ghost { background: transparent; color: var(--text); border: 1px solid var(--card-border); }
+    .btn-ghost:hover { border-color: var(--orange); color: var(--orange); }
+
+    /* ── STATS ROW ───────────────────────────────────────────── */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+    .stat-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius);
+      padding: 20px 22px;
+    }
+    .stat-label {
+      font-family: var(--font-head);
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      margin-bottom: 8px;
+    }
+    .stat-value {
+      font-family: var(--font-head);
+      font-size: 28px;
+      font-weight: 700;
+      line-height: 1;
+      margin-bottom: 6px;
+    }
+    .stat-delta { font-size: 12px; color: var(--green); }
+    .stat-delta.negative { color: #e05c5c; }
+
+    /* ── SECTION ─────────────────────────────────────────────── */
+    .section { margin-bottom: 32px; }
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+    .section-title {
+      font-family: var(--font-head);
+      font-size: 15px;
+      font-weight: 600;
+    }
+
+    /* ── TABLE ───────────────────────────────────────────────── */
+    .table-wrap { overflow-x: auto; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    thead tr {
+      border-bottom: 1px solid var(--card-border);
+    }
+    th {
+      font-family: var(--font-head);
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      padding: 10px 14px;
+      text-align: left;
+      white-space: nowrap;
+    }
+    td {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--card-border);
+      color: var(--text);
+    }
+    tr:last-child td { border-bottom: none; }
+    tbody tr:hover { background: rgba(255,255,255,.02); }
+
+    .status-badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+      font-family: var(--font-head);
+    }
+    .status-active   { background: rgba(120,140,93,.15); color: var(--green); border: 1px solid rgba(120,140,93,.3); }
+    .status-trialing { background: rgba(106,155,204,.12); color: var(--blue); border: 1px solid rgba(106,155,204,.3); }
+    .status-past-due { background: rgba(217,119,87,.12); color: var(--orange); border: 1px solid rgba(217,119,87,.3); }
+    .status-inactive { background: rgba(138,136,128,.1); color: var(--muted); border: 1px solid var(--card-border); }
+
+    .tier-badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+      font-family: var(--font-head);
+      background: rgba(217,119,87,.1);
+      color: var(--orange);
+      border: 1px solid rgba(217,119,87,.25);
+    }
+
+    /* ── CHART PLACEHOLDER ────────────────────────────────────── */
+    .chart-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 16px;
+    }
+    .chart-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius);
+      padding: 20px 22px;
+    }
+    .chart-title {
+      font-family: var(--font-head);
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 16px;
+    }
+    .bar-chart { display: flex; flex-direction: column; gap: 10px; }
+    .bar-row { display: flex; align-items: center; gap: 10px; }
+    .bar-label { font-size: 12px; color: var(--muted); width: 90px; flex-shrink: 0; }
+    .bar-track { flex: 1; height: 8px; background: var(--card-border); border-radius: 4px; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 4px; background: var(--orange); }
+    .bar-fill.blue { background: var(--blue); }
+    .bar-fill.green { background: var(--green); }
+    .bar-value { font-size: 12px; color: var(--text); width: 40px; text-align: right; flex-shrink: 0; }
+
+    .donut-chart {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+    .donut-ring {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      border: 8px solid var(--card-border);
+      border-top-color: var(--orange);
+      border-right-color: var(--blue);
+      border-bottom-color: var(--green);
+      transform: rotate(-45deg);
+      flex-shrink: 0;
+    }
+    .donut-legend { display: flex; flex-direction: column; gap: 8px; }
+    .legend-item { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+    .legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+    /* ── CUSTOMER ROW ─────────────────────────────────────────── */
+    .customer-name { font-weight: 600; font-family: var(--font-head); }
+    .customer-meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .camera-count { font-family: var(--font-head); font-size: 13px; }
+    .last-briefing { font-size: 12px; color: var(--muted); }
+
+    /* ── FILTER BAR ───────────────────────────────────────────── */
+    .filter-bar {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 16px;
+      align-items: center;
+    }
+    .filter-select {
+      padding: 7px 12px;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      font-size: 12px;
+      color: var(--text);
+      font-family: var(--font-head);
+    }
+    .filter-select:focus { outline: none; border-color: var(--orange); }
+    .search-input {
+      padding: 7px 12px;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      font-size: 13px;
+      color: var(--text);
+      width: 220px;
+    }
+    .search-input::placeholder { color: var(--muted); }
+    .search-input:focus { outline: none; border-color: var(--orange); }
+
+    /* ── PAGINATION ───────────────────────────────────────────── */
+    .pagination {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 16px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .pagination-controls { display: flex; gap: 6px; }
+    .page-btn {
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+      border: 1px solid var(--card-border);
+      background: var(--card-bg);
+      color: var(--muted);
+      font-size: 12px;
+      cursor: pointer;
+      font-family: var(--font-head);
+    }
+    .page-btn:hover { border-color: var(--orange); color: var(--text); }
+    .page-btn.active { background: var(--orange); color: var(--dark); border-color: var(--orange); }
+
+    /* ── TOAST / ALERT ─────────────────────────────────────────── */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius);
+      padding: 14px 20px;
+      font-size: 13px;
+      display: none;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 8px 24px rgba(0,0,0,.4);
+      z-index: 1000;
+    }
+    .toast.show { display: flex; }
+    .toast-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); }
+
+    /* ── RESPONSIVE ─────────────────────────────────────────────── */
+    @media (max-width: 900px) {
+      .app-shell { grid-template-columns: 1fr; }
+      .sidebar { display: none; }
+      .main { margin-left: 0; padding: 20px; }
+      .stats-row { grid-template-columns: repeat(2, 1fr); }
+      .chart-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="app-shell">
+
+  <!-- ── SIDEBAR ─────────────────────────────────────────────── -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">🏡 Estate Intel</div>
+
+    <div class="nav-section">
+      <div class="nav-section-title">Overview</div>
+      <div class="nav-item active">
+        <span class="nav-icon">📊</span> Dashboard
+      </div>
+      <div class="nav-item">
+        <span class="nav-icon">👥</span> Customers
+        <span class="nav-badge">47</span>
+      </div>
+      <div class="nav-item">
+        <span class="nav-icon">📋</span> Briefings
+      </div>
+      <div class="nav-item">
+        <span class="nav-icon">💰</span> Billing
+      </div>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-section-title">Tools</div>
+      <div class="nav-item">
+        <span class="nav-icon">🧪</span> Eval Suite
+      </div>
+      <div class="nav-item">
+        <span class="nav-icon">🔗</span> Webhooks
+      </div>
+      <div class="nav-item">
+        <span class="nav-icon">📡</span> Camera Health
+      </div>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-section-title">Settings</div>
+      <div class="nav-item">
+        <span class="nav-icon">⚙️</span> Configuration
+      </div>
+      <div class="nav-item">
+        <span class="nav-icon">👤</span> Account
+      </div>
+    </div>
+  </aside>
+
+  <!-- ── MAIN CONTENT ─────────────────────────────────────────── -->
+  <main class="main">
+
+    <!-- TOPBAR -->
+    <div class="topbar">
+      <div>
+        <div class="topbar-title">Dashboard</div>
+        <div class="topbar-meta">Monday, 6 April 2026 · Dubai, UAE</div>
+      </div>
+      <div class="topbar-actions">
+        <button class="btn btn-ghost" onclick="refreshData()">↻ Refresh</button>
+        <button class="btn btn-primary" onclick="exportCSV()">↓ Export CSV</button>
+      </div>
+    </div>
+
+    <!-- STATS ROW -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-label">Active Customers</div>
+        <div class="stat-value">47</div>
+        <div class="stat-delta">↑ 3 this week</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Briefings Sent Today</div>
+        <div class="stat-value">38</div>
+        <div class="stat-delta">↑ 12% vs avg</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">MRR (AED)</div>
+        <div class="stat-value">12,847</div>
+        <div class="stat-delta">↑ 849 this month</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Camera Anomalies</div>
+        <div class="stat-value">2</div>
+        <div class="stat-delta negative">↑ 1 unresolved</div>
+      </div>
+    </div>
+
+    <!-- CHARTS -->
+    <div class="chart-grid" style="margin-bottom:32px">
+      <div class="chart-card">
+        <div class="chart-title">Customer Growth (last 6 months)</div>
+        <div class="bar-chart">
+          <div class="bar-row">
+            <span class="bar-label">Nov 2025</span>
+            <div class="bar-track"><div class="bar-fill" style="width:45%"></div></div>
+            <span class="bar-value">21</span>
+          </div>
+          <div class="bar-row">
+            <span class="bar-label">Dec 2025</span>
+            <div class="bar-track"><div class="bar-fill" style="width:58%"></div></div>
+            <span class="bar-value">28</span>
+          </div>
+          <div class="bar-row">
+            <span class="bar-label">Jan 2026</span>
+            <div class="bar-track"><div class="bar-fill" style="width:65%"></div></div>
+            <span class="bar-value">32</span>
+          </div>
+          <div class="bar-row">
+            <span class="bar-label">Feb 2026</span>
+            <div class="bar-track"><div class="bar-fill" style="width:74%"></div></div>
+            <span class="bar-value">38</span>
+          </div>
+          <div class="bar-row">
+            <span class="bar-label">Mar 2026</span>
+            <div class="bar-track"><div class="bar-fill" style="width:82%"></div></div>
+            <span class="bar-value">42</span>
+          </div>
+          <div class="bar-row">
+            <span class="bar-label">Apr 2026</span>
+            <div class="bar-track"><div class="bar-fill" style="width:100%"></div></div>
+            <span class="bar-value">47</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="chart-card">
+        <div class="chart-title">Tier Distribution</div>
+        <div class="donut-chart">
+          <div class="donut-ring"></div>
+          <div class="donut-legend">
+            <div class="legend-item">
+              <span class="legend-dot" style="background:var(--orange)"></span>
+              Starter — 19
+            </div>
+            <div class="legend-item">
+              <span class="legend-dot" style="background:var(--blue)"></span>
+              Standard — 17
+            </div>
+            <div class="legend-item">
+              <span class="legend-dot" style="background:var(--green)"></span>
+              Estate — 8
+            </div>
+            <div class="legend-item">
+              <span class="legend-dot" style="background:var(--mid-gray)"></span>
+              Custom — 3
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CUSTOMER TABLE -->
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title">Recent Customers</div>
+        <button class="btn btn-ghost" style="font-size:12px">View all →</button>
+      </div>
+
+      <div class="filter-bar">
+        <input class="search-input" type="text" placeholder="Search by name or property…" id="customer-search" oninput="filterCustomers()" />
+        <select class="filter-select" id="filter-status" onchange="filterCustomers()">
+          <option value="">All statuses</option>
+          <option value="active">Active</option>
+          <option value="trialing">Trialing</option>
+          <option value="past_due">Past Due</option>
+          <option value="inactive">Inactive</option>
+        </select>
+        <select class="filter-select" id="filter-tier" onchange="filterCustomers()">
+          <option value="">All tiers</option>
+          <option value="starter">Starter</option>
+          <option value="standard">Standard</option>
+          <option value="estate">Estate</option>
+          <option value="custom">Custom</option>
+        </select>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Customer</th>
+              <th>Property</th>
+              <th>Tier</th>
+              <th>Cameras</th>
+              <th>Status</th>
+              <th>Last Briefing</th>
+              <th>Revenue (AED)</th>
+            </tr>
+          </thead>
+          <tbody id="customer-table-body">
+            <tr>
+              <td>
+                <div class="customer-name">Ahmed Al Mansouri</div>
+                <div class="customer-meta">+971 50 123 4567 · @ahmed_m</div>
+              </td>
+              <td>Villa, JVC</td>
+              <td><span class="tier-badge">Standard</span></td>
+              <td class="camera-count">6</td>
+              <td><span class="status-badge status-active">Active</span></td>
+              <td class="last-briefing">Today, 8:00 PM</td>
+              <td>349/mo</td>
+            </tr>
+            <tr>
+              <td>
+                <div class="customer-name">Fatima Al Qasimi</div>
+                <div class="customer-meta">+971 55 987 6543 · @fatima_aq</div>
+              </td>
+              <td>Villa, Emirates Hills</td>
+              <td><span class="tier-badge">Estate</span></td>
+              <td class="camera-count">12</td>
+              <td><span class="status-badge status-active">Active</span></td>
+              <td class="last-briefing">Today, 7:00 PM</td>
+              <td>599/mo</td>
+            </tr>
+            <tr>
+              <td>
+                <div class="customer-name">Khalid Bin Rashid</div>
+                <div class="customer-meta">+971 50 456 7890 · @khalid_br</div>
+              </td>
+              <td>Villa, Palm Jumeirah</td>
+              <td><span class="tier-badge">Starter</span></td>
+              <td class="camera-count">3</td>
+              <td><span class="status-badge status-trialing">Trialing</span></td>
+              <td class="last-briefing">Today, 9:00 PM</td>
+              <td>199/mo</td>
+            </tr>
+            <tr>
+              <td>
+                <div class="customer-name">Mariam Al Hashemi</div>
+                <div class="customer-meta">+971 52 111 2233 · @mariam_ah</div>
+              </td>
+              <td>Compound, DIFC</td>
+              <td><span class="tier-badge">Standard</span></td>
+              <td class="camera-count">5</td>
+              <td><span class="status-badge status-past-due">Past Due</span></td>
+              <td class="last-briefing">Yesterday</td>
+              <td>349/mo</td>
+            </tr>
+            <tr>
+              <td>
+                <div class="customer-name">Omar Al Maktoum</div>
+                <div class="customer-meta">+971 50 789 0123 · @omar_am</div>
+              </td>
+              <td>Villa, Arabian Ranches</td>
+              <td><span class="tier-badge">Estate</span></td>
+              <td class="camera-count">9</td>
+              <td><span class="status-badge status-active">Active</span></td>
+              <td class="last-briefing">Today, 8:00 PM</td>
+              <td>599/mo</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="pagination">
+        <span>Showing 1–5 of 47 customers</span>
+        <div class="pagination-controls">
+          <button class="page-btn">←</button>
+          <button class="page-btn active">1</button>
+          <button class="page-btn">2</button>
+          <button class="page-btn">3</button>
+          <button class="page-btn">→</button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast">
+  <div class="toast-dot"></div>
+  <span id="toast-msg">Dashboard refreshed</span>
+</div>
+
+<script>
+  const API_BASE = '/api';
+
+  function showToast(message) {
+    const toast = document.getElementById('toast');
+    document.getElementById('toast-msg').textContent = message;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 3000);
+  }
+
+  async function refreshData() {
+    showToast('Refreshing dashboard data…');
+    // In production, fetch /api/admin/stats and /api/admin/customers
+    setTimeout(() => showToast('Dashboard refreshed'), 800);
+  }
+
+  function exportCSV() {
+    showToast('Preparing CSV export…');
+    // In production, fetch /api/admin/export/customers?format=csv
+    setTimeout(() => showToast('CSV download started'), 600);
+  }
+
+  function filterCustomers() {
+    const search = document.getElementById('customer-search').value.toLowerCase();
+    const status = document.getElementById('filter-status').value;
+    const tier = document.getElementById('filter-tier').value;
+    const rows = document.querySelectorAll('#customer-table-body tr');
+
+    rows.forEach(row => {
+      const text = row.textContent.toLowerCase();
+      const matchSearch = !search || text.includes(search);
+      const matchStatus = !status || row.textContent.includes(status.replace('_', ' '));
+      const matchTier = !tier || row.textContent.toLowerCase().includes(tier);
+      row.style.display = (matchSearch && matchStatus && matchTier) ? '' : 'none';
+    });
+  }
+
+  // Init
+  window.addEventListener('DOMContentLoaded', () => {
+    filterCustomers();
+  });
+</script>
+</body>
+</html>

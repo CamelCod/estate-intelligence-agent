@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Estate Intelligence — Know what happened at home today</title>
+  <meta name="description" content="Daily WhatsApp briefings for UAE villa owners. Your home, explained in plain English every evening." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    /* ── RESET & BASE ────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: #0a0a0f;
+      color: #e8e6e0;
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+    a { color: inherit; text-decoration: none; }
+
+    /* ── DESIGN TOKENS ───────────────────────────────────────── */
+    :root {
+      --gold:    #c9a84c;
+      --gold-lt: #e8c96e;
+      --dark:    #0a0a0f;
+      --card:    #13131a;
+      --border:  #1e1e2a;
+      --text:    #e8e6e0;
+      --muted:   #8a8898;
+      --green:   #2ecc71;
+      --radius:  12px;
+    }
+
+    /* ── UTILITY ────────────────────────────────────────────── */
+    .container  { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+    .tag        { display: inline-block; padding: 4px 12px; border-radius: 20px;
+                  font-size: 11px; font-weight: 600; letter-spacing: .08em;
+                  text-transform: uppercase; }
+    .tag-gold   { background: rgba(201,168,76,.15); color: var(--gold); border: 1px solid rgba(201,168,76,.3); }
+    .tag-green  { background: rgba(46,204,113,.12); color: var(--green); border: 1px solid rgba(46,204,113,.3); }
+    .divider    { width: 40px; height: 2px; background: var(--gold); margin: 16px auto; border-radius: 2px; }
+
+    /* ── NAVIGATION ─────────────────────────────────────────── */
+    nav {
+      position: fixed; top: 0; width: 100%; z-index: 100;
+      padding: 16px 0;
+      background: rgba(10,10,15,.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-inner {
+      display: flex; align-items: center; justify-content: space-between;
+      max-width: 1100px; margin: 0 auto; padding: 0 24px;
+    }
+    .nav-logo { font-size: 16px; font-weight: 600; color: var(--gold); letter-spacing: .03em; }
+    .nav-links { display: flex; gap: 32px; align-items: center; }
+    .nav-links a { font-size: 14px; color: var(--muted); transition: color .2s; }
+    .nav-links a:hover { color: var(--text); }
+    .nav-cta {
+      padding: 8px 20px; background: var(--gold); color: #000; border-radius: 8px;
+      font-size: 13px; font-weight: 600; cursor: pointer; border: none;
+      transition: background .2s;
+    }
+    .nav-cta:hover { background: var(--gold-lt); }
+
+    /* ── HERO ───────────────────────────────────────────────── */
+    .hero {
+      padding: 140px 0 100px;
+      text-align: center;
+      position: relative;
+    }
+    .hero::before {
+      content: '';
+      position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+      width: 600px; height: 400px;
+      background: radial-gradient(ellipse at center, rgba(201,168,76,.08) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero-eyebrow { margin-bottom: 20px; }
+    .hero h1 {
+      font-size: clamp(38px, 6vw, 64px);
+      font-weight: 700;
+      line-height: 1.1;
+      letter-spacing: -.02em;
+      margin-bottom: 24px;
+      max-width: 800px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .hero h1 span { color: var(--gold); }
+    .hero-sub {
+      font-size: 18px; color: var(--muted); max-width: 520px;
+      margin: 0 auto 40px; line-height: 1.7;
+    }
+    .hero-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .btn-primary {
+      padding: 14px 32px; background: var(--gold); color: #000;
+      border: none; border-radius: 10px; font-size: 15px; font-weight: 600;
+      cursor: pointer; transition: all .2s;
+    }
+    .btn-primary:hover { background: var(--gold-lt); transform: translateY(-1px); }
+    .btn-secondary {
+      padding: 14px 32px; background: transparent; color: var(--text);
+      border: 1px solid var(--border); border-radius: 10px; font-size: 15px;
+      cursor: pointer; transition: all .2s;
+    }
+    .btn-secondary:hover { border-color: var(--gold); color: var(--gold); }
+
+    /* ── BRIEFING PREVIEW ───────────────────────────────────── */
+    .preview-section { padding: 60px 0 80px; }
+    .preview-card {
+      max-width: 420px; margin: 40px auto 0;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .preview-header {
+      background: #1a3a1a;
+      padding: 12px 16px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .wa-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--green); }
+    .wa-label { font-size: 12px; color: var(--green); font-weight: 500; }
+    .preview-body { padding: 20px; }
+    .preview-time { font-size: 11px; color: var(--muted); margin-bottom: 12px; }
+    .preview-text { font-size: 14px; line-height: 1.7; color: #d0cec8; }
+    .preview-text p { margin-bottom: 10px; }
+
+    /* ── HOW IT WORKS ───────────────────────────────────────── */
+    .how-section { padding: 80px 0; text-align: center; }
+    .section-title {
+      font-size: clamp(26px, 4vw, 36px); font-weight: 700;
+      margin-bottom: 12px; letter-spacing: -.01em;
+    }
+    .section-sub { color: var(--muted); font-size: 16px; margin-bottom: 56px; }
+    .steps-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 24px;
+      text-align: left;
+    }
+    .step-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 28px;
+      position: relative;
+    }
+    .step-num {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: rgba(201,168,76,.15); color: var(--gold);
+      font-size: 14px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 16px;
+    }
+    .step-title { font-size: 15px; font-weight: 600; margin-bottom: 8px; }
+    .step-text  { font-size: 13px; color: var(--muted); line-height: 1.6; }
+
+    /* ── PRICING ────────────────────────────────────────────── */
+    #pricing { padding: 80px 0; }
+    .pricing-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 20px; margin-top: 48px;
+    }
+    .pricing-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 32px;
+      position: relative; transition: border-color .2s;
+    }
+    .pricing-card:hover { border-color: rgba(201,168,76,.4); }
+    .pricing-card.featured {
+      border-color: var(--gold);
+      background: linear-gradient(145deg, #13131a 0%, #1a1609 100%);
+    }
+    .featured-badge {
+      position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
+      padding: 4px 16px; background: var(--gold); color: #000;
+      border-radius: 20px; font-size: 11px; font-weight: 700;
+      white-space: nowrap;
+    }
+    .pricing-tier { font-size: 12px; font-weight: 600; color: var(--muted);
+                    text-transform: uppercase; letter-spacing: .08em; margin-bottom: 8px; }
+    .pricing-price { font-size: 40px; font-weight: 700; line-height: 1; margin-bottom: 4px; }
+    .pricing-price span { font-size: 16px; font-weight: 400; color: var(--muted); }
+    .pricing-cameras { font-size: 13px; color: var(--muted); margin-bottom: 24px; }
+    .pricing-features { list-style: none; margin-bottom: 28px; }
+    .pricing-features li {
+      font-size: 13px; padding: 6px 0;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: flex-start; gap: 8px;
+    }
+    .pricing-features li:last-child { border-bottom: none; }
+    .feat-check { color: var(--green); font-size: 14px; flex-shrink: 0; margin-top: 1px; }
+    .pricing-btn {
+      width: 100%; padding: 12px; border-radius: 8px; font-size: 14px;
+      font-weight: 600; cursor: pointer; transition: all .2s; border: none;
+    }
+    .pricing-btn-ghost {
+      background: transparent; color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .pricing-btn-ghost:hover { border-color: var(--gold); color: var(--gold); }
+    .pricing-btn-gold  { background: var(--gold); color: #000; }
+    .pricing-btn-gold:hover { background: var(--gold-lt); }
+    .trial-note {
+      text-align: center; font-size: 13px; color: var(--muted);
+      margin-top: 20px;
+    }
+    .trial-note strong { color: var(--gold); }
+
+    /* ── SIGNUP FORM ────────────────────────────────────────── */
+    #signup { padding: 80px 0; }
+    .signup-wrapper {
+      max-width: 480px; margin: 0 auto;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 40px;
+    }
+    .signup-title { font-size: 24px; font-weight: 700; margin-bottom: 8px; }
+    .signup-sub   { font-size: 14px; color: var(--muted); margin-bottom: 32px; }
+    .form-group { margin-bottom: 16px; }
+    .form-label { font-size: 13px; font-weight: 500; margin-bottom: 6px; display: block; }
+    .form-input, .form-select {
+      width: 100%; padding: 11px 14px;
+      background: rgba(255,255,255,.04); border: 1px solid var(--border);
+      border-radius: 8px; font-size: 14px; color: var(--text);
+      transition: border-color .2s;
+      -webkit-appearance: none;
+    }
+    .form-input:focus, .form-select:focus {
+      outline: none; border-color: var(--gold);
+    }
+    .form-input::placeholder { color: var(--muted); }
+    .form-select option { background: #13131a; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .tier-selector { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 6px; }
+    .tier-option {
+      padding: 10px 8px; background: rgba(255,255,255,.03);
+      border: 1px solid var(--border); border-radius: 8px;
+      text-align: center; cursor: pointer; transition: all .2s;
+    }
+    .tier-option:hover { border-color: rgba(201,168,76,.4); }
+    .tier-option.selected { border-color: var(--gold); background: rgba(201,168,76,.08); }
+    .tier-option-name  { font-size: 12px; font-weight: 600; }
+    .tier-option-price { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .submit-btn {
+      width: 100%; padding: 14px;
+      background: var(--gold); color: #000;
+      border: none; border-radius: 8px; font-size: 15px; font-weight: 700;
+      cursor: pointer; transition: all .2s; margin-top: 8px;
+    }
+    .submit-btn:hover { background: var(--gold-lt); transform: translateY(-1px); }
+    .submit-btn:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+    .form-footer { font-size: 12px; color: var(--muted); text-align: center; margin-top: 12px; }
+    .error-msg  { font-size: 12px; color: #e74c3c; margin-top: 4px; display: none; }
+    .success-box {
+      text-align: center; padding: 20px;
+      background: rgba(46,204,113,.08); border: 1px solid rgba(46,204,113,.3);
+      border-radius: 8px; display: none;
+    }
+
+    /* ── FAQ ────────────────────────────────────────────────── */
+    .faq-section { padding: 60px 0 80px; max-width: 680px; margin: 0 auto; }
+    .faq-item { border-bottom: 1px solid var(--border); padding: 20px 0; }
+    .faq-q {
+      font-size: 15px; font-weight: 500; cursor: pointer;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .faq-q::after { content: '+'; color: var(--gold); font-size: 20px; flex-shrink: 0; }
+    .faq-q.open::after { content: '−'; }
+    .faq-a { font-size: 14px; color: var(--muted); margin-top: 12px; line-height: 1.7; display: none; }
+    .faq-a.open { display: block; }
+
+    /* ── FOOTER ─────────────────────────────────────────────── */
+    footer {
+      padding: 40px 0; border-top: 1px solid var(--border);
+      text-align: center; color: var(--muted); font-size: 13px;
+    }
+    footer a { color: var(--muted); }
+    footer a:hover { color: var(--gold); }
+
+    /* ── LOADING SPINNER ─────────────────────────────────────── */
+    .spinner {
+      display: inline-block; width: 14px; height: 14px;
+      border: 2px solid rgba(0,0,0,.3); border-top-color: #000;
+      border-radius: 50%; animation: spin .6s linear infinite; margin-right: 8px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── RESPONSIVE ─────────────────────────────────────────── */
+    @media (max-width: 640px) {
+      .nav-links .hide-sm { display: none; }
+      .hero { padding: 120px 0 80px; }
+      .form-row { grid-template-columns: 1fr; }
+      .signup-wrapper { padding: 28px 20px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── NAVIGATION ──────────────────────────────────────────────── -->
+<nav>
+  <div class="nav-inner">
+    <div class="nav-logo">🏡 Estate Intelligence</div>
+    <div class="nav-links">
+      <a href="#how" class="hide-sm">How it works</a>
+      <a href="#pricing" class="hide-sm">Pricing</a>
+      <a href="#faq" class="hide-sm">FAQ</a>
+      <button class="nav-cta" onclick="scrollToSignup()">Start free trial</button>
+    </div>
+  </div>
+</nav>
+
+<!-- ── HERO ──────────────────────────────────────────────────────── -->
+<section class="hero">
+  <div class="container">
+    <div class="hero-eyebrow">
+      <span class="tag tag-green">✓ No camera replacement required</span>
+    </div>
+    <h1>Know what happened at<br /><span>home today</span></h1>
+    <p class="hero-sub">
+      A plain-English WhatsApp briefing every evening — staff arrivals, deliveries, anomalies — from your existing IP cameras. No app, no footage scrubbing.
+    </p>
+    <div class="hero-actions">
+      <button class="btn-primary" onclick="scrollToSignup()">Start 14-day free trial</button>
+      <button class="btn-secondary" onclick="document.getElementById('how').scrollIntoView({behavior:'smooth'})">See how it works</button>
+    </div>
+  </div>
+</section>
+
+<!-- ── BRIEFING PREVIEW ───────────────────────────────────────────── -->
+<section class="preview-section">
+  <div class="container" style="text-align:center">
+    <span class="tag tag-gold">Sample briefing</span>
+    <div class="divider"></div>
+    <p style="color:var(--muted); font-size:14px; margin-bottom:24px">Delivered to your WhatsApp every evening at the time you choose</p>
+
+    <div class="preview-card">
+      <div class="preview-header">
+        <div class="wa-dot"></div>
+        <span class="wa-label">WhatsApp · Estate Intelligence</span>
+      </div>
+      <div class="preview-body">
+        <div class="preview-time">Today, 8:00 PM</div>
+        <div class="preview-text">
+          <p>Good evening, Ahmed. Here's your home briefing for Monday, 6 April.</p>
+          <p>Mariam arrived at 7:02 AM as expected. Khalid was not logged today — no camera activity detected at the staff entrance after 9 AM.</p>
+          <p>A delivery arrived at 7:58 AM via the front gate. The package was moved inside at 9:44 AM by Mariam.</p>
+          <p>The side gate camera was offline from 11:30 AM to 1:21 PM. It reconnected automatically and is now live.</p>
+          <p>Everything else looked normal today. Is there anything specific you'd like me to check? 🏡</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── HOW IT WORKS ───────────────────────────────────────────────── -->
+<section id="how" class="how-section">
+  <div class="container">
+    <span class="tag tag-gold">Setup in 20 minutes</span>
+    <div class="divider"></div>
+    <h2 class="section-title">From cameras you already own<br />to a daily home briefing</h2>
+    <p class="section-sub">No hardware purchases. No IT team. Works with any RTSP-capable IP camera.</p>
+
+    <div class="steps-grid">
+      <div class="step-card">
+        <div class="step-num">1</div>
+        <div class="step-title">Share your camera streams</div>
+        <div class="step-text">Give us the RTSP addresses of your existing cameras via our Telegram onboarding bot. We validate connectivity instantly.</div>
+      </div>
+      <div class="step-card">
+        <div class="step-num">2</div>
+        <div class="step-title">Tell us your staff roster</div>
+        <div class="step-text">Enter who works at your property, their roles, and expected arrival times. This is what makes the briefing accurate and personal.</div>
+      </div>
+      <div class="step-card">
+        <div class="step-num">3</div>
+        <div class="step-title">Choose your briefing time</div>
+        <div class="step-text">Pick when you want your daily WhatsApp message — 7 PM, 9 PM, midnight — we deliver it at your preferred time every day.</div>
+      </div>
+      <div class="step-card">
+        <div class="step-num">4</div>
+        <div class="step-title">Ask questions any time</div>
+        <div class="step-text">Reply to any briefing with a question — "Did the cleaner come?" or "Was anyone at the pool today?" — and get an instant answer.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── PRICING ────────────────────────────────────────────────────── -->
+<section id="pricing">
+  <div class="container" style="text-align:center">
+    <span class="tag tag-gold">Simple, transparent pricing</span>
+    <div class="divider"></div>
+    <h2 class="section-title">Pay for what you use</h2>
+    <p class="section-sub">All plans include a 14-day free trial. Cancel any time, no contracts.</p>
+
+    <div class="pricing-grid">
+      <!-- Starter -->
+      <div class="pricing-card">
+        <div class="pricing-tier">Starter</div>
+        <div class="pricing-price">199 <span>AED/mo</span></div>
+        <div class="pricing-cameras">1 – 3 cameras</div>
+        <ul class="pricing-features">
+          <li><span class="feat-check">✓</span> Daily WhatsApp briefing</li>
+          <li><span class="feat-check">✓</span> Staff accountability tracking</li>
+          <li><span class="feat-check">✓</span> Delivery &amp; visitor detection</li>
+          <li><span class="feat-check">✓</span> Camera anomaly alerts</li>
+          <li><span class="feat-check">✓</span> Telegram Q&amp;A (5 queries/day)</li>
+        </ul>
+        <button class="pricing-btn pricing-btn-ghost" onclick="selectTierAndSignup('starter')">Start free trial</button>
+      </div>
+
+      <!-- Standard (featured) -->
+      <div class="pricing-card featured">
+        <div class="featured-badge">Most Popular</div>
+        <div class="pricing-tier">Standard</div>
+        <div class="pricing-price">349 <span>AED/mo</span></div>
+        <div class="pricing-cameras">4 – 8 cameras</div>
+        <ul class="pricing-features">
+          <li><span class="feat-check">✓</span> Everything in Starter</li>
+          <li><span class="feat-check">✓</span> Unlimited Q&amp;A queries</li>
+          <li><span class="feat-check">✓</span> 2-hour priority support</li>
+          <li><span class="feat-check">✓</span> Onboarding fee waived</li>
+          <li><span class="feat-check">✓</span> English + Arabic briefings</li>
+        </ul>
+        <button class="pricing-btn pricing-btn-gold" onclick="selectTierAndSignup('standard')">Start free trial</button>
+      </div>
+
+      <!-- Estate -->
+      <div class="pricing-card">
+        <div class="pricing-tier">Estate</div>
+        <div class="pricing-price">599 <span>AED/mo</span></div>
+        <div class="pricing-cameras">9 – 16 cameras</div>
+        <ul class="pricing-features">
+          <li><span class="feat-check">✓</span> Everything in Standard</li>
+          <li><span class="feat-check">✓</span> Multiple daily briefings</li>
+          <li><span class="feat-check">✓</span> Zone-of-interest tracking</li>
+          <li><span class="feat-check">✓</span> Dedicated account manager</li>
+          <li><span class="feat-check">✓</span> 10% annual discount</li>
+        </ul>
+        <button class="pricing-btn pricing-btn-ghost" onclick="selectTierAndSignup('estate')">Start free trial</button>
+      </div>
+    </div>
+
+    <div class="trial-note">
+      <strong>14-day free trial</strong> on all plans · No credit card required to start · Prices exclude 5% UAE VAT
+    </div>
+  </div>
+</section>
+
+<!-- ── SIGNUP FORM ─────────────────────────────────────────────────── -->
+<section id="signup">
+  <div class="container">
+    <div class="signup-wrapper">
+      <h2 class="signup-title">Start your free trial</h2>
+      <p class="signup-sub">14 days free. No card required to begin. Cancel any time.</p>
+
+      <div id="signup-form-container">
+        <form id="signup-form" onsubmit="handleSignup(event)" novalidate>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="name">Full name</label>
+              <input class="form-input" id="name" type="text" placeholder="Ahmed Al Mansouri" required />
+              <div class="error-msg" id="name-error">Please enter your name</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="email">Email address</label>
+              <input class="form-input" id="email" type="email" placeholder="ahmed@example.com" required />
+              <div class="error-msg" id="email-error">Please enter a valid email</div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="phone">WhatsApp number</label>
+            <input class="form-input" id="phone" type="tel" placeholder="+971 50 123 4567" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="cameras">Number of cameras</label>
+            <select class="form-select" id="cameras" onchange="updateTierFromCameras()">
+              <option value="1">1 camera</option>
+              <option value="2">2 cameras</option>
+              <option value="3">3 cameras</option>
+              <option value="4" selected>4 cameras</option>
+              <option value="5">5 cameras</option>
+              <option value="6">6 cameras</option>
+              <option value="8">8 cameras</option>
+              <option value="10">10 cameras</option>
+              <option value="12">12 cameras</option>
+              <option value="16">16 cameras</option>
+              <option value="17">17+ cameras (custom)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Plan</label>
+            <div class="tier-selector">
+              <div class="tier-option" id="tier-starter" onclick="selectTier('starter')">
+                <div class="tier-option-name">Starter</div>
+                <div class="tier-option-price">199 AED</div>
+              </div>
+              <div class="tier-option selected" id="tier-standard" onclick="selectTier('standard')">
+                <div class="tier-option-name">Standard</div>
+                <div class="tier-option-price">349 AED</div>
+              </div>
+              <div class="tier-option" id="tier-estate" onclick="selectTier('estate')">
+                <div class="tier-option-name">Estate</div>
+                <div class="tier-option-price">599 AED</div>
+              </div>
+            </div>
+            <input type="hidden" id="selected-tier" value="standard" />
+          </div>
+
+          <div class="form-group" style="margin-top:4px">
+            <label class="form-label" for="property">Property type</label>
+            <select class="form-select" id="property">
+              <option value="Villa">Villa</option>
+              <option value="Compound">Compound</option>
+              <option value="Apartment">Apartment</option>
+              <option value="Office">Office</option>
+            </select>
+          </div>
+
+          <button class="submit-btn" id="submit-btn" type="submit">
+            Start my 14-day free trial →
+          </button>
+
+          <p class="form-footer">By signing up you agree to our <a href="#" style="color:var(--gold)">Terms of Service</a> and <a href="#" style="color:var(--gold)">Privacy Policy</a>.</p>
+        </form>
+
+        <div class="success-box" id="success-box">
+          <div style="font-size:32px; margin-bottom:12px">🎉</div>
+          <div style="font-size:17px; font-weight:600; margin-bottom:8px">You're in! Check WhatsApp or Telegram.</div>
+          <div style="font-size:13px; color:var(--muted)">We're setting up your estate intelligence pipeline. You'll receive a confirmation message within 5 minutes.</div>
+          <div style="margin-top:16px">
+            <a id="checkout-link" href="#" style="color:var(--gold); font-size:13px">Complete payment setup →</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── FAQ ───────────────────────────────────────────────────────── -->
+<section id="faq">
+  <div class="container">
+    <div style="text-align:center; margin-bottom:40px">
+      <span class="tag tag-gold">FAQ</span>
+      <div class="divider"></div>
+      <h2 class="section-title">Common questions</h2>
+    </div>
+    <div class="faq-section" style="padding:0; max-width:680px; margin:0 auto">
+
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)">Do I need to replace my cameras?</div>
+        <div class="faq-a">No. Estate Intelligence works with any IP camera that supports RTSP — which includes most Hikvision, Dahua, Reolink, Uniview, and Axis cameras. If your NVR supports RTSP streams, you're compatible.</div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)">Is my footage stored anywhere?</div>
+        <div class="faq-a">No. We extract single frames for event analysis and store only the text description of what happened. Your video footage stays on your NVR at your property. We never store, copy, or transmit video.</div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)">What if something serious happens — a break-in or emergency?</div>
+        <div class="faq-a">We escalate immediately. If a camera detects a genuine intrusion or physical emergency, you receive an instant WhatsApp message — not just an evening briefing. You remain in control for any irreversible action.</div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)">Can I ask questions in Arabic?</div>
+        <div class="faq-a">Yes. Standard and Estate plans include Arabic briefings and the Q&amp;A interface accepts Arabic text. Briefings are delivered in your preferred language.</div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)">How does the free trial work?</div>
+        <div class="faq-a">You get 14 days of full service at no cost. No credit card is required to start. On day 12, we'll remind you to add a payment method if you'd like to continue. Cancel any time — no questions asked.</div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)">Is this a SIRA-licensed security system?</div>
+        <div class="faq-a">No — and intentionally so. Estate Intelligence is a property awareness and staff accountability service. We provide daily briefings about home activity, not a licensed SIRA security monitoring service. This distinction matters legally in the UAE.</div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ── FOOTER ─────────────────────────────────────────────────────── -->
+<footer>
+  <div class="container">
+    <p style="margin-bottom:8px">
+      <strong style="color:var(--gold)">🏡 Estate Intelligence</strong>
+    </p>
+    <p>Daily home briefings for UAE villa owners · Dubai, UAE</p>
+    <p style="margin-top:8px">
+      <a href="mailto:hello@estateintelligence.ae">hello@estateintelligence.ae</a>
+      &nbsp;·&nbsp;
+      <a href="https://wa.me/971500000000">WhatsApp</a>
+      &nbsp;·&nbsp;
+      <a href="#">Privacy</a>
+      &nbsp;·&nbsp;
+      <a href="#">Terms</a>
+    </p>
+    <p style="margin-top:12px; font-size:11px">© 2026 Estate Intelligence. All rights reserved.</p>
+  </div>
+</footer>
+
+<!-- ── JAVASCRIPT ──────────────────────────────────────────────────── -->
+<script>
+  const API_BASE = window.location.origin;  // same-origin API (FastAPI backend)
+
+  // ── Tier selection ────────────────────────────────────────────
+  function selectTier(tier) {
+    ['starter','standard','estate'].forEach(t => {
+      document.getElementById('tier-' + t).classList.toggle('selected', t === tier);
+    });
+    document.getElementById('selected-tier').value = tier;
+  }
+
+  function selectTierAndSignup(tier) {
+    selectTier(tier);
+    document.getElementById('signup').scrollIntoView({ behavior: 'smooth' });
+  }
+
+  const CAMERA_TIER_MAP = {
+    1:'starter', 2:'starter', 3:'starter',
+    4:'standard', 5:'standard', 6:'standard', 8:'standard',
+    10:'estate', 12:'estate', 16:'estate',
+    17:'custom'
+  };
+
+  function updateTierFromCameras() {
+    const val  = parseInt(document.getElementById('cameras').value);
+    const tier = CAMERA_TIER_MAP[val] || 'custom';
+    if (tier !== 'custom') selectTier(tier);
+  }
+
+  function scrollToSignup() {
+    document.getElementById('signup').scrollIntoView({ behavior: 'smooth' });
+  }
+
+  // ── Form validation ───────────────────────────────────────────
+  function validateForm() {
+    let valid = true;
+    const name  = document.getElementById('name').value.trim();
+    const email = document.getElementById('email').value.trim();
+
+    document.getElementById('name-error').style.display  = 'none';
+    document.getElementById('email-error').style.display = 'none';
+
+    if (!name) {
+      document.getElementById('name-error').style.display = 'block';
+      valid = false;
+    }
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      document.getElementById('email-error').style.display = 'block';
+      valid = false;
+    }
+    return valid;
+  }
+
+  // ── Signup handler ─────────────────────────────────────────────
+  async function handleSignup(event) {
+    event.preventDefault();
+    if (!validateForm()) return;
+
+    const btn = document.getElementById('submit-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>Setting up your trial…';
+
+    const payload = {
+      name        : document.getElementById('name').value.trim(),
+      email       : document.getElementById('email').value.trim(),
+      phone       : document.getElementById('phone').value.trim() || null,
+      camera_count: parseInt(document.getElementById('cameras').value),
+      tier        : document.getElementById('selected-tier').value,
+    };
+
+    try {
+      const res = await fetch(API_BASE + '/signup', {
+        method : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body   : JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.detail || 'Something went wrong. Please try again.');
+      }
+
+      if (data.tier === 'custom') {
+        window.location.href = data.whatsapp;
+        return;
+      }
+
+      // Show success and redirect to Stripe checkout
+      document.getElementById('signup-form').style.display = 'none';
+      const successBox  = document.getElementById('success-box');
+      successBox.style.display = 'block';
+
+      if (data.checkout_url) {
+        document.getElementById('checkout-link').href = data.checkout_url;
+        setTimeout(() => { window.location.href = data.checkout_url; }, 2000);
+      }
+
+    } catch (err) {
+      btn.disabled = false;
+      btn.innerHTML = 'Start my 14-day free trial →';
+      alert(err.message || 'Error connecting. Please try again.');
+    }
+  }
+
+  // ── FAQ accordion ─────────────────────────────────────────────
+  function toggleFaq(el) {
+    const answer = el.nextElementSibling;
+    el.classList.toggle('open');
+    answer.classList.toggle('open');
+  }
+
+  // ── Init: auto-select tier from URL param ─────────────────────
+  window.addEventListener('DOMContentLoaded', () => {
+    const params = new URLSearchParams(window.location.search);
+    const tier   = params.get('tier');
+    if (tier && ['starter','standard','estate'].includes(tier)) {
+      selectTier(tier);
+    }
+  });
+</script>
+</body>
+</html>
