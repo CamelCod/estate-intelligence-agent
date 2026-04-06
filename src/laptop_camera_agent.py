@@ -4,8 +4,9 @@ laptop_camera_agent.py — Live Laptop Camera CCTV Intelligence Agent
 Estate Intelligence Agent
 
 ALGORITHM: laptopCameraAgent
-GOAL:      Capture laptop camera, detect motion, send frames to Claude Vision,
-           classify events with Claude LLM, and display live terminal feedback.
+GOAL:      Capture laptop camera, detect motion, send frames to a vision model
+           (Reka Edge 2603 via HF Inference API or Claude Vision), classify
+           events with Claude LLM, and display live terminal feedback.
 INPUT:     Laptop webcam (device index 0 by default)
 OUTPUT:    Terminal event log + optional Telegram alerts
 STEPS:
@@ -16,7 +17,7 @@ STEPS:
      b. Compute grayscale pixel diff vs. baseline frame.
      c. If diff score > MOTION_THRESHOLD and cooldown elapsed:
         i.  Encode frame as JPEG → base64 string.
-        ii. Send to Claude Vision → receive scene description.
+        ii. Route to vision backend (reka | claude) → scene description.
         iii. Send description to Claude LLM → receive decision dict.
         iv. Execute action: log_event | send_telegram | escalate.
         v.  Print event line to terminal live dashboard.
@@ -24,6 +25,11 @@ STEPS:
      d. Update dashboard display with current stats.
      e. Sleep FRAME_SLEEP_SEC between frames.
   4. On Ctrl+C: log summary and exit cleanly.
+
+Vision backends:
+  reka   — RekaAI/reka-edge-2603 via HF Inference API (needs HF_TOKEN)
+  claude — claude-opus-4-5 Vision API (needs ANTHROPIC_API_KEY)
+  auto   — try reka first, fall back to claude on error
 """
 
 from __future__ import annotations
@@ -59,6 +65,13 @@ except ImportError:
     sys.exit(1)
 
 try:
+    from huggingface_hub import InferenceClient as HFInferenceClient
+    _HF_AVAILABLE : bool = True
+except ImportError:
+    _HF_AVAILABLE  = False
+    HFInferenceClient = None  # type: ignore
+
+try:
     from dotenv import load_dotenv
     load_dotenv()
 except ImportError:
@@ -70,8 +83,12 @@ except ImportError:
 # ─────────────────────────────────────────────────────────────────────────────
 
 ANTHROPIC_API_KEY   : str   = os.environ.get("ANTHROPIC_API_KEY", "")
+HF_TOKEN            : str   = os.environ.get("HF_TOKEN", "")           # HuggingFace access token
 TELEGRAM_BOT_TOKEN  : str   = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_CHAT_ID    : str   = os.environ.get("TELEGRAM_CHAT_ID", "")
+
+# Vision backend: "reka" | "claude" | "auto" (reka first, claude fallback)
+VISION_BACKEND      : str   = os.environ.get("VISION_BACKEND", "reka").lower()
 
 CAMERA_DEVICE_INDEX : int   = int(os.environ.get("CAMERA_DEVICE", "0"))
 MOTION_THRESHOLD    : float = float(os.environ.get("MOTION_THRESHOLD", "0.015"))  # 1.5% pixels changed
@@ -81,6 +98,7 @@ FRAME_WIDTH         : int   = int(os.environ.get("FRAME_WIDTH", "640"))
 FRAME_HEIGHT        : int   = int(os.environ.get("FRAME_HEIGHT", "480"))
 JPEG_QUALITY        : int   = int(os.environ.get("JPEG_QUALITY", "75"))          # lower = smaller payload
 
+REKA_MODEL          : str   = "RekaAI/reka-edge-2603"
 CLAUDE_VISION_MODEL : str   = "claude-opus-4-5"
 CLAUDE_LLM_MODEL    : str   = "claude-haiku-4-5-20251001"   # fast/cheap for decisions
 VISION_MAX_TOKENS   : int   = 300
@@ -271,6 +289,108 @@ def describe_frame_with_vision(base64_jpeg: str, claude_client: anthropic.Anthro
 
     return scene_description.strip()
 # end function describe_frame_with_vision
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# PILLAR VI — Function: describe_frame_with_reka
+# GOAL  : Send a frame to Reka Edge 2603 (HF Inference API) for scene description.
+# INPUT : base64_jpeg (str) — base64-encoded JPEG frame
+# OUTPUT: Returns sceneDescription (str) — 2–4 sentence scene summary
+# STEPS :
+#   1. Check HF SDK is available — raise ImportError if not installed.
+#   2. Build HF InferenceClient with REKA_MODEL and HF_TOKEN.
+#   3. Construct chat message with inline base64 image URL + text prompt.
+#   4. Call client.chat.completions.create() with the message.
+#   5. Extract text from response choices.
+#   6. Return description string.
+# ─────────────────────────────────────────────────────────────────────────────
+def describe_frame_with_reka(base64_jpeg: str) -> str:
+    if not _HF_AVAILABLE:
+        raise ImportError(
+            "huggingface_hub not installed. "
+            "Run: pip install huggingface_hub --break-system-packages"
+        )
+
+    vision_prompt : str = (
+        "You are analysing a security camera frame. "
+        "Describe in 2-3 sentences: (1) what you see — people, objects, environment, "
+        "(2) any notable activity or movement, "
+        "(3) approximate time-of-day cues if visible. "
+        "Be factual and specific. If no people are visible, say so."
+    )
+
+    # Inline base64 data URI — Reka accepts standard OpenAI-style image_url blocks
+    data_uri : str = f"data:image/jpeg;base64,{base64_jpeg}"
+
+    hf_client = HFInferenceClient(
+        model    = REKA_MODEL,
+        token    = HF_TOKEN if HF_TOKEN else None,
+    )
+
+    response = hf_client.chat.completions.create(
+        messages = [
+            {
+                "role"   : "user",
+                "content": [
+                    {
+                        "type"     : "image_url",
+                        "image_url": {"url": data_uri},
+                    },
+                    {
+                        "type": "text",
+                        "text": vision_prompt,
+                    },
+                ],
+            }
+        ],
+        max_tokens = VISION_MAX_TOKENS,
+    )
+
+    scene_description : str = response.choices[0].message.content or ""
+    return scene_description.strip()
+# end function describe_frame_with_reka
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# PILLAR VI — Function: describe_frame
+# GOAL  : Route a frame to the configured vision backend and return description.
+# INPUT : base64_jpeg (str), claude_client (Anthropic | None)
+# OUTPUT: Returns (description: str, backend_used: str)
+# STEPS :
+#   1. If VISION_BACKEND == "reka": call describe_frame_with_reka().
+#   2. If VISION_BACKEND == "claude": call describe_frame_with_vision().
+#   3. If VISION_BACKEND == "auto":
+#      a. Try reka first.
+#      b. On any exception, fall back to claude and log the error.
+#   4. Return (description, backend_name).
+# ─────────────────────────────────────────────────────────────────────────────
+def describe_frame(
+    base64_jpeg  : str,
+    claude_client: Optional[anthropic.Anthropic],
+) -> tuple[str, str]:
+    """Returns (scene_description, backend_used_label)."""
+
+    if VISION_BACKEND == "reka":
+        description : str = describe_frame_with_reka(base64_jpeg)
+        return description, "reka-edge-2603"
+
+    if VISION_BACKEND == "claude":
+        if claude_client is None:
+            raise RuntimeError("Claude client not initialised but VISION_BACKEND=claude")
+        description = describe_frame_with_vision(base64_jpeg, claude_client)
+        return description, "claude-vision"
+
+    # auto — reka first, claude fallback
+    try:
+        description = describe_frame_with_reka(base64_jpeg)
+        return description, "reka-edge-2603"
+    except Exception as reka_error:
+        log.warning("Reka vision failed (%s) — falling back to Claude Vision", reka_error)
+        if claude_client is None:
+            raise RuntimeError("Reka failed and Claude client not available for fallback") from reka_error
+        description = describe_frame_with_vision(base64_jpeg, claude_client)
+        return description, "claude-vision (fallback)"
+# end function describe_frame
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -467,8 +587,10 @@ def print_dashboard_header() -> None:
     print(f"\n{C.GOLD}{'═' * 70}{C.RESET}")
     print(f"{C.GOLD}{C.BOLD}  🏡 ESTATE INTELLIGENCE — LIVE CAMERA AGENT{C.RESET}")
     print(f"{C.GOLD}{'─' * 70}{C.RESET}")
+    backend_display : str = f"{C.GOLD}{VISION_BACKEND.upper()}{C.RESET}" if VISION_BACKEND == "reka" else f"{C.CYAN}{VISION_BACKEND.upper()}{C.RESET}"
     print(
         f"  Camera: {C.CYAN}device {CAMERA_DEVICE_INDEX}{C.RESET}  "
+        f"│  Vision: {backend_display}  "
         f"│  Location: {C.CYAN}{LOCATION_LABEL}{C.RESET}  "
         f"│  Uptime: {C.CYAN}{uptime_str}{C.RESET}"
     )
@@ -514,12 +636,14 @@ def process_motion_frame(
         print(f"{C.RED}  ✗ Frame encode failed: {encode_error}{C.RESET}")
         return
 
-    # Step 2 — vision description
+    # Step 2 — vision description (routed to configured backend)
+    backend_label : str = VISION_BACKEND
     try:
-        scene_description : str = describe_frame_with_vision(base64_jpeg, claude_client)
+        scene_description : str
+        scene_description, backend_label = describe_frame(base64_jpeg, claude_client)
     except Exception as vision_error:
         scene_description = f"[Vision API error: {str(vision_error)[:60]}]"
-        print(f"{C.RED}  ✗ Vision API error: {vision_error}{C.RESET}")
+        print(f"{C.RED}  ✗ Vision API error ({VISION_BACKEND}): {vision_error}{C.RESET}")
 
     # Step 3 — LLM classification
     decision : Dict[str, Any] = classify_event_with_llm(scene_description, event_log, claude_client)
@@ -534,6 +658,7 @@ def process_motion_frame(
         "confidence" : decision.get("confidence", 0.0),
         "reasoning"  : decision.get("reasoning", ""),
         "motion_pct" : motion_score,
+        "vision_backend": backend_label,
     }
 
     # Step 5 — print to dashboard
@@ -612,11 +737,21 @@ def graceful_shutdown(signum: int, frame: Any) -> None:
 def main() -> None:
     global running_flag, frames_read, last_capture_ts
 
-    # ── Validate API key ─────────────────────────────────────────────────────
-    if not ANTHROPIC_API_KEY:
-        print(f"{C.RED}[ERROR] ANTHROPIC_API_KEY not set in environment.{C.RESET}")
-        print(f"        Create a .env file or export the variable:")
-        print(f"        {C.CYAN}export ANTHROPIC_API_KEY=sk-ant-...{C.RESET}")
+    # ── Validate API keys ─────────────────────────────────────────────────────
+    reka_only : bool = VISION_BACKEND == "reka"
+
+    if not ANTHROPIC_API_KEY and not reka_only:
+        print(f"{C.RED}[ERROR] ANTHROPIC_API_KEY not set.{C.RESET}")
+        print(f"        Set it in .env or use VISION_BACKEND=reka with HF_TOKEN instead.")
+        sys.exit(1)
+
+    if VISION_BACKEND in ("reka", "auto") and not HF_TOKEN:
+        print(f"{C.YELLOW}[WARN] HF_TOKEN not set — Reka inference may fail for private/gated models.{C.RESET}")
+        print(f"       Get a free token at https://huggingface.co/settings/tokens")
+
+    if not _HF_AVAILABLE and VISION_BACKEND in ("reka", "auto"):
+        print(f"{C.RED}[ERROR] huggingface_hub not installed but VISION_BACKEND={VISION_BACKEND}.{C.RESET}")
+        print(f"        Run: pip install huggingface_hub --break-system-packages")
         sys.exit(1)
 
     # ── Open camera ──────────────────────────────────────────────────────────
@@ -626,9 +761,18 @@ def main() -> None:
         print(f"{C.RED}[ERROR] {camera_error}{C.RESET}")
         sys.exit(1)
 
-    # ── Initialise Anthropic client ──────────────────────────────────────────
-    claude_client : anthropic.Anthropic = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
-    print(f"{C.GREEN}✓ Claude API client ready{C.RESET} — vision: {CLAUDE_VISION_MODEL} · LLM: {CLAUDE_LLM_MODEL}")
+    # ── Initialise Anthropic client (needed for LLM decisions + Claude vision) ──
+    claude_client : Optional[anthropic.Anthropic] = None
+    if ANTHROPIC_API_KEY:
+        claude_client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+        print(f"{C.GREEN}✓ Claude API client ready{C.RESET} — LLM: {CLAUDE_LLM_MODEL}")
+    else:
+        print(f"{C.YELLOW}⚠ No ANTHROPIC_API_KEY — LLM classification disabled (vision-only mode){C.RESET}")
+
+    if VISION_BACKEND in ("reka", "auto"):
+        print(f"{C.GOLD}✓ Vision backend: Reka Edge 2603{C.RESET} — {REKA_MODEL}")
+    else:
+        print(f"{C.CYAN}✓ Vision backend: Claude Vision{C.RESET} — {CLAUDE_VISION_MODEL}")
 
     # ── Signal handlers ───────────────────────────────────────────────────────
     signal.signal(signal.SIGINT,  graceful_shutdown)

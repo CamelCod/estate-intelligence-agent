@@ -16,3 +16,4 @@ httpx==0.26.0
 opencv-python>=4.8.0
 numpy>=1.24.0
 anthropic>=0.25.0
+huggingface_hub>=0.22.0   # Reka Edge 2603 via HF Inference API
